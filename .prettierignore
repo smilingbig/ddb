@@ -1,0 +1,8 @@
+.nyc_output
+build
+tsconfig*
+.eslintrc.json
+*-lock.yaml
+package.json
+README.md
+.prettierrc
