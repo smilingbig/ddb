@@ -10,11 +10,11 @@
     "sourceType": "module",
     "ecmaVersion": 2020
   },
-  "plugins": ["@typescript-eslint", "tap"],
+  "plugins": ["@typescript-eslint", "jest"],
   "extends": [
     "plugin:@typescript-eslint/recommended",
+    "plugin:jest/recommended",
     "eslint:recommended",
-    "plugin:tap/recommended",
     "prettier"
   ],
   "rules": {
