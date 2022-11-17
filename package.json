@@ -1,12 +1,13 @@
 {
-  "name": "create-stuff",
+  "name": "ddb",
   "version": "0.0.1",
-  "description": "",
+  "description": "Testing out dynamodb data modeling patterns and learning the sdk api",
   "main": "index.js",
   "scripts": {
     "build:release": "npm run clean && tsc -p tsconfig.release.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
+    "precommit": "npm run lint && npm run prettier",
     "clean": "rimraf .nyc_output build tmp",
     "lint": "eslint . --ext .ts --fix",
     "prettier": "prettier --config .prettierrc --write .",
@@ -16,6 +17,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.212.0",
+    "@faker-js/faker": "^7.6.0",
     "@types/jest": "^29.2.2",
     "@types/node": "^18.8.5",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
