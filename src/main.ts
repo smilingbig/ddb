@@ -31,6 +31,19 @@ interface TableAttributes {
   KeyType: "HASH" | "RANGE"
 }
 
+export async function insertUntil(
+  TableName: string,
+  tableAttributes: TableAttributes[],
+) {
+  // TODO
+  // Next I need to write a function that inserts into the complex attribute
+  // type but only if the number field is less than the max allowed. Incremenet
+  // after insert
+
+  console.log(TableName, tableAttributes)
+  return
+}
+
 export function generateTableSchema(tableAttributes: TableAttributes[]): {
   AttributeDefinitions: AttributeDefinition[]
   KeySchema: KeySchemaElement[]
@@ -58,6 +71,9 @@ export function generateTableSchema(tableAttributes: TableAttributes[]): {
 }
 
 export function generateBatchWriteRequests<T>(items: T[]): WriteRequest[] {
+  // TODO
+  // I don't think this works for delete, because if I remember correctly the
+  // 'Item' structure is slightly different
   return items.map((Item) => ({ ["PutRequest" || "DeleteRequest"]: { Item } }))
 }
 
@@ -111,12 +127,20 @@ export function populateDatabase(TableName: string) {
 
     await batchWriteItems({
       TableName,
-      writeItems: Array.from({ length: 10 }).map(() => ({
-        PK: { S: faker.datatype.uuid() },
-        SK: { S: faker.internet.userName() },
-        no: { N: 0 },
-        list: { L: [1] },
-      })),
+      writeItems: Array.from({ length: 10 }).map(() => {
+        const randomNumber = faker.random.numeric(1)
+
+        return {
+          PK: { S: faker.datatype.uuid() },
+          SK: { S: faker.internet.userName() },
+          no: { N: randomNumber },
+          list: {
+            L: Array.from({ length: Number(randomNumber) }).map(() => ({
+              S: faker.internet.userName(),
+            })),
+          },
+        }
+      }),
     })
 
     console.log(`${TableName} populated`)
@@ -151,7 +175,7 @@ export function setupDatabase(TableName: string) {
         ]),
       })
     } catch (e) {
-      console.warn(e)
+      console.warn("Database already created")
     }
 
     console.log(`${TableName} setup`)
@@ -160,16 +184,7 @@ export function setupDatabase(TableName: string) {
 
 export async function dump(TableName: string) {
   const params = { TableName }
+
   const command = new ScanCommand(params)
   return await client.send(command)
 }
-
-// ;(async () => {
-//   if (require.main !== module) return
-//   // const createData = await createTable(createParams)
-//   // console.log(createData)
-//   const deleteData = await deleteTable({
-//     TableName: "Table",
-//   })
-//   console.log(deleteData)
-// })()

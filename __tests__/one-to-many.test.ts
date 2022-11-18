@@ -20,7 +20,7 @@ beforeAll(populateDatabase(TABLE_NAME))
 // tap.test("Denormalization by using a complex attribute", (t) => {
 test("That we create a database", async () => {
   console.log("test")
-  console.log(dump(TABLE_NAME))
+  console.log(await dump(TABLE_NAME))
 
   expect(true).toBeTruthy()
 })

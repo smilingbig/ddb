@@ -11,7 +11,8 @@
     "clean": "rimraf .nyc_output build tmp",
     "lint": "eslint . --ext .ts --fix",
     "prettier": "prettier --config .prettierrc --write .",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "deleteDb": "ts-node ./tasks/delete-db.ts Table"
   },
   "keywords": [],
   "author": "",
