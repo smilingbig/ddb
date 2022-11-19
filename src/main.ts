@@ -11,11 +11,11 @@ import {
   WriteRequest,
   ScanCommand,
 } from "@aws-sdk/client-dynamodb"
-import { faker } from "@faker-js/faker"
+import { unmarshall } from "@aws-sdk/util-dynamodb"
 
 const client = new DynamoDBClient({ endpoint: "http://localhost:8000" })
 
-interface TableAttributes {
+export interface TableAttributes {
   AttributeName: string
   AttributeType:
     | "B"
@@ -31,17 +31,8 @@ interface TableAttributes {
   KeyType: "HASH" | "RANGE"
 }
 
-export async function insertUntil(
-  TableName: string,
-  tableAttributes: TableAttributes[],
-) {
-  // TODO
-  // Next I need to write a function that inserts into the complex attribute
-  // type but only if the number field is less than the max allowed. Incremenet
-  // after insert
-
-  console.log(TableName, tableAttributes)
-  return
+export async function send(command: any) {
+  return await client.send(command)
 }
 
 export function generateTableSchema(tableAttributes: TableAttributes[]): {
@@ -94,9 +85,6 @@ export async function batchWriteItems<T>({
   TableName: string
   writeItems: T[]
 }) {
-  console.log("writeItems", writeItems)
-  console.log("wrappedWriteItems", generateBatchWriteRequests(writeItems))
-
   const params: BatchWriteItemCommandInput = {
     RequestItems: {
       [TableName]: [...generateBatchWriteRequests(writeItems)],
@@ -106,51 +94,32 @@ export async function batchWriteItems<T>({
   const command = new BatchWriteItemCommand(params)
   const data = await client.send(command)
 
-  console.log(data)
-
   return data
 }
 
 export function teardownDatabase(TableName: string) {
   return async () => {
-    console.log(`Deleting ${TableName}`)
-
     await deleteTable({ TableName })
-
-    console.log(`${TableName} is deleted`)
   }
 }
 
-export function populateDatabase(TableName: string) {
+// TODO
+// This should be a reusable method that takes different data schemas or
+// something like that for populating different structures for testing
+export function populateDatabase<T>(TableName: string, writeItems: T[]) {
   return async () => {
-    console.log(`Populating ${TableName}`)
-
     await batchWriteItems({
       TableName,
-      writeItems: Array.from({ length: 10 }).map(() => {
-        const randomNumber = faker.random.numeric(1)
-
-        return {
-          PK: { S: faker.datatype.uuid() },
-          SK: { S: faker.internet.userName() },
-          no: { N: randomNumber },
-          list: {
-            L: Array.from({ length: Number(randomNumber) }).map(() => ({
-              S: faker.internet.userName(),
-            })),
-          },
-        }
-      }),
+      writeItems,
     })
-
-    console.log(`${TableName} populated`)
   }
 }
 
-export function setupDatabase(TableName: string) {
+export function setupDatabase(
+  TableName: string,
+  tableAttributes: TableAttributes[],
+) {
   return async () => {
-    console.log(`Setup ${TableName}`)
-
     try {
       await createTable({
         TableName,
@@ -161,24 +130,11 @@ export function setupDatabase(TableName: string) {
           ReadCapacityUnits: 1,
           WriteCapacityUnits: 1,
         },
-        ...generateTableSchema([
-          {
-            KeyType: "HASH",
-            AttributeName: "PK",
-            AttributeType: "S",
-          },
-          {
-            KeyType: "RANGE",
-            AttributeName: "SK",
-            AttributeType: "S",
-          },
-        ]),
+        ...generateTableSchema(tableAttributes),
       })
     } catch (e) {
       console.warn("Database already created")
     }
-
-    console.log(`${TableName} setup`)
   }
 }
 
@@ -186,5 +142,10 @@ export async function dump(TableName: string) {
   const params = { TableName }
 
   const command = new ScanCommand(params)
-  return await client.send(command)
+  const result = await client.send(command)
+
+  return {
+    ...result,
+    Items: result.Items.map((x) => unmarshall(x)),
+  }
 }

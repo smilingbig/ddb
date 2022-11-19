@@ -6,3 +6,4 @@ tsconfig*
 package.json
 README.md
 .prettierrc
+coverage

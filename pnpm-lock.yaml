@@ -2,6 +2,7 @@ lockfileVersion: 5.4
 
 specifiers:
   '@aws-sdk/client-dynamodb': ^3.212.0
+  '@aws-sdk/util-dynamodb': ^3.214.0
   '@faker-js/faker': ^7.6.0
   '@types/jest': ^29.2.2
   '@types/node': ^18.8.5
@@ -19,6 +20,7 @@ specifiers:
 
 devDependencies:
   '@aws-sdk/client-dynamodb': 3.212.0
+  '@aws-sdk/util-dynamodb': 3.214.0
   '@faker-js/faker': 7.6.0
   '@types/jest': 29.2.2
   '@types/node': 18.8.5
@@ -691,6 +693,13 @@ packages:
       '@aws-sdk/node-config-provider': 3.212.0
       '@aws-sdk/property-provider': 3.212.0
       '@aws-sdk/types': 3.212.0
+      tslib: 2.4.1
+    dev: true
+
+  /@aws-sdk/util-dynamodb/3.214.0:
+    resolution: {integrity: sha512-IsBJkNsMRwb8mtr8QYSXXPud0WG1pUD8hCBilWpxTat4Yr23aANhJX8ti1S4ks/iWU7AYjq/aSkSXH3cEkoVLA==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
       tslib: 2.4.1
     dev: true
 

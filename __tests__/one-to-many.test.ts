@@ -1,26 +1,113 @@
+import { UpdateItemCommand } from "@aws-sdk/client-dynamodb"
+import { faker } from "@faker-js/faker"
 import {
   dump,
   populateDatabase,
   setupDatabase,
-  // teardownDatabase
+  TableAttributes,
+  teardownDatabase,
+  send,
 } from "../src/main"
 
 const TABLE_NAME = "Table"
 
-beforeAll(setupDatabase(TABLE_NAME))
-beforeAll(populateDatabase(TABLE_NAME))
-// afterAll(teardownDatabase(TABLE_NAME))
+describe("One to many", () => {
+  describe("Denormalisation with complex attribute", () => {
+    const maxCount = 3
+    const primaryKey: TableAttributes[] = [
+      {
+        KeyType: "HASH",
+        AttributeName: "PK",
+        AttributeType: "S",
+      },
+      {
+        KeyType: "RANGE",
+        AttributeName: "SK",
+        AttributeType: "S",
+      },
+    ]
 
-// TODO
-// setup db with a complex attribute an array of something maybe, and with another field as the amount field of the complex attribute.
-// on insert only insert if the amount field is less than a certain amount
-// on successful insert increment the amount field as well
-// throw an error if we can't insert saying to remove before inserting
-// on remove could do the same except only if the amount if more than 0 otherwise not
-// tap.test("Denormalization by using a complex attribute", (t) => {
-test("That we create a database", async () => {
-  console.log("test")
-  console.log(await dump(TABLE_NAME))
+    // We prepopulate with a single item that has a list with two items
+    const writeItems = Array.from({ length: 1 }).map(() => {
+      return {
+        PK: { S: "USER#smilingbig" },
+        SK: { S: "USER#smilingbig" },
+        count: { N: 2 },
+        list: {
+          L: Array.from({ length: 2 }).map(() => ({
+            S: faker.internet.userName(),
+          })),
+        },
+      }
+    })
 
-  expect(true).toBeTruthy()
+    const command = {
+      TableName: TABLE_NAME,
+      Key: {
+        PK: {
+          S: "USER#smilingbig",
+        },
+        SK: {
+          S: "USER#smilingbig",
+        },
+      },
+      ConditionExpression: "#count < :maxCount",
+      UpdateExpression:
+        "SET #count = #count + :inc, #list = list_append(#list, :listItem)",
+      ExpressionAttributeNames: {
+        "#count": "count",
+        "#list": "list",
+      },
+      ExpressionAttributeValues: {
+        ":maxCount": { N: String(maxCount) },
+        ":inc": { N: "1" },
+        ":listItem": { L: [{ S: faker.internet.userName() }] },
+      },
+    }
+
+    beforeAll(setupDatabase(TABLE_NAME, primaryKey))
+    beforeAll(populateDatabase(TABLE_NAME, writeItems))
+    afterAll(teardownDatabase(TABLE_NAME))
+
+    it("should allow you to insert a list item if its less than the max count allowed", async () => {
+      const predump = await dump(TABLE_NAME)
+
+      expect(predump.Count).toBe(1)
+      expect(predump.Items[0].count).toBe(2)
+      expect(predump.Items[0].list).toHaveLength(2)
+
+      await expect(send(new UpdateItemCommand(command))).resolves.not.toThrow()
+
+      const postdump = await dump(TABLE_NAME)
+
+      expect(postdump.Items[0].count).toBe(3)
+      expect(postdump.Items[0].list).toHaveLength(3)
+      expect(postdump.Count).toBe(1)
+    })
+
+    it("should not allow us to insert more list items once teh amount value has been reached", async () => {
+
+      const predump = await dump(TABLE_NAME)
+
+      expect(predump.Count).toBe(1)
+      expect(predump.Items[0].count).toBe(3)
+      expect(predump.Items[0].list).toHaveLength(3)
+
+      await expect(send(new UpdateItemCommand(command))).rejects.toThrow(
+        "The conditional request failed",
+      )
+
+      const postdump = await dump(TABLE_NAME)
+
+      expect(postdump.Items[0].count).toBe(3)
+      expect(postdump.Items[0].list).toHaveLength(3)
+      expect(postdump.Count).toBe(1)
+    })
+  })
+
+  describe("Denormalization by duplicating data", () => {
+    it.todo(
+      "should not allow us to insert more list items once teh amount value has been reached",
+    )
+  })
 })
