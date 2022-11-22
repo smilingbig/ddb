@@ -17,7 +17,7 @@ import { unmarshall } from "@aws-sdk/util-dynamodb"
 const TABLE_NAME = "Table"
 
 describe("One to many", () => {
-  describe.skip("Denormalisation with complex attribute", () => {
+  describe("Denormalisation with complex attribute", () => {
     const maxCount = 3
     const primaryKey: TableAttributes[] = [
       {
@@ -112,7 +112,7 @@ describe("One to many", () => {
 
   // TODO
   // If duplicate data required updating, what strategies could be used
-  describe.skip("Denormalization by duplicating data", () => {
+  describe("Denormalization by duplicating data", () => {
     const primaryKey: TableAttributes[] = [
       {
         KeyType: "HASH",
@@ -175,7 +175,7 @@ describe("One to many", () => {
     })
   })
 
-  describe.skip("Composite primary key + the Query API action", () => {
+  describe("Composite primary key + the Query API action", () => {
     const primaryKey: TableAttributes[] = [
       {
         KeyType: "HASH",

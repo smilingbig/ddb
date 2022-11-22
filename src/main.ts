@@ -160,8 +160,6 @@ export function setupDatabase(
     ),
   }
 
-  console.log("settings", JSON.stringify(settings, null, 4))
-
   return async () => {
     try {
       await createTable(settings)
