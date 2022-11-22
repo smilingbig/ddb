@@ -17,7 +17,7 @@ import { unmarshall } from "@aws-sdk/util-dynamodb"
 const TABLE_NAME = "Table"
 
 describe("One to many", () => {
-  describe("Denormalisation with complex attribute", () => {
+  describe.skip("Denormalisation with complex attribute", () => {
     const maxCount = 3
     const primaryKey: TableAttributes[] = [
       {
@@ -112,7 +112,7 @@ describe("One to many", () => {
 
   // TODO
   // If duplicate data required updating, what strategies could be used
-  describe("Denormalization by duplicating data", () => {
+  describe.skip("Denormalization by duplicating data", () => {
     const primaryKey: TableAttributes[] = [
       {
         KeyType: "HASH",
@@ -175,7 +175,7 @@ describe("One to many", () => {
     })
   })
 
-  describe("Composite primary key + the Query API action", () => {
+  describe.skip("Composite primary key + the Query API action", () => {
     const primaryKey: TableAttributes[] = [
       {
         KeyType: "HASH",
@@ -303,6 +303,109 @@ describe("One to many", () => {
           expect.objectContaining({ Name: "Satya Nadella" }),
         ]),
       )
+    })
+  })
+
+  describe("Secondary index + the Query API action", () => {
+    const primaryKey: TableAttributes[] = [
+      {
+        KeyType: "HASH",
+        AttributeName: "PK",
+        AttributeType: "S",
+      },
+      {
+        KeyType: "RANGE",
+        AttributeName: "SK",
+        AttributeType: "S",
+      },
+    ]
+
+    const globalSecondaryIndex = [
+      {
+        IndexName: "GSI1",
+        KeySchema: [
+          {
+            KeyType: "HASH",
+            AttributeName: "GSI1PK",
+            AttributeType: "S",
+          },
+          {
+            KeyType: "RANGE",
+            AttributeName: "GSI1SK",
+            AttributeType: "S",
+          },
+        ],
+        Projection: {
+          ProjectionType: "ALL",
+        },
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 1,
+          WriteCapacityUnits: 1,
+        },
+      },
+    ]
+
+    const writeItems = [
+      {
+        PK: { S: "ORG#MICROSOFT" },
+        SK: { S: "METADATA#MICROSOFT" },
+        Name: { S: "Microsoft" },
+        Type: { S: "Enterprise" },
+      },
+      {
+        PK: { S: "ORG#MICROSOFT" },
+        SK: { S: "USER#BILLGATES" },
+        Name: { S: "Bill Gates" },
+        Type: { S: "Member" },
+        GSI1PK: { S: "ORG#MICROSOFT#USER#BILLGATES" },
+        GSI1SK: { S: "USER#BILLGATES" },
+      },
+      {
+        PK: { S: "ORG#MICROSOFT" },
+        SK: { S: "USER#SATYANADELLA" },
+        Name: { S: "Satya Nadella" },
+        Type: { S: "Admin" },
+        GSI1PK: { S: "ORG#MICROSOFT#USER#SATYANADELLA" },
+        GSI1SK: { S: "USER#SATYANADELLA" },
+      },
+      {
+        PK: { S: "ORG#AMAZON" },
+        SK: { S: "USER#JOHNSMITH" },
+        Name: { S: "John Smith" },
+        Type: { S: "Member" },
+        GSI1PK: { S: "ORG#AMAZON#USER#JOHNSMITH" },
+        GSI1SK: { S: "USER#JOHNSMITH" },
+      },
+      {
+        PK: { S: "ORG#AMAZON" },
+        SK: { S: "METADATA#AMAZON" },
+        Name: { S: "Amazon" },
+        Type: { S: "Pro" },
+      },
+      {
+        PK: { S: "TICKET#123" },
+        SK: { S: "TICKET#123" },
+        createdAt: { S: "Date()" },
+        GSI1PK: { S: "ORG#MICROSOFT#USER#BILLGATES" },
+        GSI1SK: { S: "TICKET#123" },
+      },
+      {
+        PK: { S: "TICKET#456" },
+        SK: { S: "TICKET#456" },
+        createdAt: { S: "Date()" },
+        GSI1PK: { S: "ORG#MICROSOFT#USER#BILLGATES" },
+        GSI1SK: { S: "TICKET#456" },
+      },
+    ]
+
+    beforeAll(setupDatabase(TABLE_NAME, primaryKey, globalSecondaryIndex))
+    beforeAll(populateDatabase(TABLE_NAME, writeItems))
+    afterAll(teardownDatabase(TABLE_NAME))
+
+    it("Do something interesting", async () => {
+      const result = await dump(TABLE_NAME)
+
+      expect(result).toStrictEqual({})
     })
   })
 })

@@ -10,6 +10,7 @@ import {
   BatchWriteItemCommandInput,
   WriteRequest,
   ScanCommand,
+  GlobalSecondaryIndex,
 } from "@aws-sdk/client-dynamodb"
 import { unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -35,10 +36,31 @@ export async function send(command: any) {
   return await client.send(command)
 }
 
-export function generateTableSchema(tableAttributes: TableAttributes[]): {
+interface AttrProperties {
   AttributeDefinitions: AttributeDefinition[]
   KeySchema: KeySchemaElement[]
-} {
+}
+
+export function addGlobalSecondaryIndexAttributeDefinitions(
+  attributes: AttrProperties,
+  globalSecondaryIndexes: GlobalSecondaryIndex[] = [],
+): AttrProperties {
+  if (!globalSecondaryIndexes.length) return attributes
+  return {
+    ...attributes,
+    AttributeDefinitions: [
+      ...attributes.AttributeDefinitions,
+      ...globalSecondaryIndexes.reduce(
+        (accu: any, current: any) => [...accu, ...current.KeySchema],
+        [],
+      ),
+    ],
+  }
+}
+
+export function generateTableSchema(
+  tableAttributes: TableAttributes[],
+): AttrProperties {
   const reduceFn = (accu: any, current: any) => {
     return {
       AttributeDefinitions: [
@@ -118,22 +140,34 @@ export function populateDatabase<T>(TableName: string, writeItems: T[]) {
 export function setupDatabase(
   TableName: string,
   tableAttributes: TableAttributes[],
+  globalSecondaryIndexes?: GlobalSecondaryIndex[],
 ) {
+  const settings = {
+    TableName,
+    StreamSpecification: {
+      StreamEnabled: false,
+    },
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 1,
+      WriteCapacityUnits: 1,
+    },
+    ...(globalSecondaryIndexes && {
+      GlobalSecondaryIndexes: globalSecondaryIndexes,
+    }),
+    ...addGlobalSecondaryIndexAttributeDefinitions(
+      generateTableSchema(tableAttributes),
+      globalSecondaryIndexes,
+    ),
+  }
+
+  console.log("settings", JSON.stringify(settings, null, 4))
+
   return async () => {
     try {
-      await createTable({
-        TableName,
-        StreamSpecification: {
-          StreamEnabled: false,
-        },
-        ProvisionedThroughput: {
-          ReadCapacityUnits: 1,
-          WriteCapacityUnits: 1,
-        },
-        ...generateTableSchema(tableAttributes),
-      })
+      await createTable(settings)
     } catch (e) {
-      console.warn("Database already created")
+      console.warn("Issues creating database")
+      console.error(e)
     }
   }
 }
